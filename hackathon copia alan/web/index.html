@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orbital Farm · Guía Sencilla para tu Terreno</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" id="brandHomeBtn" role="button" tabindex="0">
+      <div class="brand-emblem" aria-hidden="true">
+        <svg viewBox="0 0 40 40" width="30" height="30">
+          <circle cx="20" cy="20" r="16" fill="#ffffff" stroke="#1d6fd6" stroke-width="2" />
+          <path d="M20 29 C20 21, 20 15, 26 11 C21 12, 19 16, 20 21 C19 16, 15 13, 13 14 C16 17, 19 22, 20 29 Z" fill="#16a34a" />
+          <circle cx="30" cy="10" r="3" fill="#0284c7" />
+        </svg>
+      </div>
+      <div>
+        <h1>Orbital Farm</h1>
+        <p class="subtitle" data-i18n="appSubtitle">Guía fácil con datos de la NASA para tu tierra</p>
+      </div>
+    </div>
+
+    <nav class="main-nav" aria-label="Navegación principal">
+      <button class="nav-btn active" data-view="home" data-i18n="navHome">🏠 Inicio</button>
+      <button class="nav-btn" data-view="nasa" data-i18n="navNasa">1. Mi Terreno</button>
+      <button class="nav-btn" data-view="diagnostics" data-i18n="navDiag">2. Agua y Tierra</button>
+      <button class="nav-btn" data-view="scenarios" data-i18n="navScen">3. Si Hay Sequía</button>
+      <button class="nav-btn" data-view="rotations" data-i18n="navRot">4. Qué Sembrar</button>
+    </nav>
+
+    <div class="topbar-actions">
+      <div id="nasaStatusBadge" class="status-pill status-ready">
+        <span class="pulse-dot"></span>
+        <span id="nasaStatusText" data-i18n="statusReady">Listo para usar</span>
+      </div>
+
+      <div class="lang-box">
+        <select id="langSelect" class="input input-compact" aria-label="Seleccionar idioma">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="pt">Português</option>
+          <option value="it">Italiano</option>
+          <option value="de">Deutsch</option>
+          <option value="custom" data-i18n="langOtherOption">Otro idioma...</option>
+        </select>
+        <input id="customLangInput" class="input input-compact hidden" type="text" placeholder="Ej: ru, ko..." />
+        <button id="applyCustomLangBtn" class="btn btn-secondary btn-sm hidden" type="button" data-i18n="translateBtn">Traducir</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ==================== 0. INICIO ==================== -->
+    <section id="view-home" class="view active">
+      <div class="hero-banner">
+        <div class="hero-copy">
+          <span class="hero-kicker" data-i18n="heroKicker">AYUDA PRÁCTICA PARA EL CAMPO · DATOS NASA</span>
+          <h2 class="hero-title" data-i18n="heroTitle">Cuida tu tierra, ahorra agua y asegura tu cosecha</h2>
+          <p class="hero-desc" data-i18n="heroDesc">
+            Elige dónde está tu terreno y qué siembras hoy. En pocos clics verás cómo viene el clima y qué cultivos conviene alternar los próximos 3 años.
+          </p>
+
+          <div class="quick-setup-card">
+            <div class="quick-grid">
+              <div>
+                <label class="field-label" for="homePresetSelect">
+                  <span data-i18n="presetLabel">¿Dónde está tu terreno?</span>
+                  <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                    <span class="help-tooltip" data-i18n="tipRegion">Elige la zona más cercana a tu rancho o parcela para revisar la lluvia y temperatura de ese lugar.</span>
+                  </span>
+                </label>
+                <select id="homePresetSelect" class="input"></select>
+              </div>
+              <div>
+                <label class="field-label" for="homeCurrentCrop">
+                  <span data-i18n="currentCropLabel">¿Qué siembras hoy?</span>
+                  <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                    <span class="help-tooltip" data-i18n="tipCrop">Lo usamos para comparar tu cultivo actual contra otras opciones que cuidan más el agua y la tierra.</span>
+                  </span>
+                </label>
+                <select id="homeCurrentCrop" class="input"></select>
+              </div>
+            </div>
+            <div class="hero-cta-row">
+              <button id="startExploreBtn" class="btn btn-primary" type="button" data-i18n="heroCtaMain">
+                1. Revisar el clima de mi terreno →
+              </button>
+              <button class="btn btn-secondary" type="button" data-goto="rotations" data-i18n="heroCtaPlan">
+                Ir directo a qué me conviene sembrar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <canvas id="heroOrbitCanvas" width="390" height="300"></canvas>
+          <div class="hero-telemetry-chip">
+            <span id="heroLocationChip">Altiplano del Bajío · Listo para consultar</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="portal-grid">
+        <button class="portal-card" type="button" data-goto="nasa">
+          <span class="portal-icon">🗺️</span>
+          <span class="portal-step">Paso 1</span>
+          <h4 data-i18n="portalNasaTitle">Ubica tu Terreno</h4>
+          <p data-i18n="portalNasaDesc">Marca tu zona en el mapa y mira cuánta lluvia y calor hubo en los últimos años.</p>
+          <span class="portal-link" data-i18n="portalOpen">Entrar →</span>
+        </button>
+
+        <button class="portal-card" type="button" data-goto="diagnostics">
+          <span class="portal-icon">💧</span>
+          <span class="portal-step">Paso 2</span>
+          <h4 data-i18n="portalDiagTitle">Agua y Tierra</h4>
+          <p data-i18n="portalDiagDesc">Cuéntanos cómo es tu suelo para saber cuánta agua guarda y en qué meses falta lluvia.</p>
+          <span class="portal-link" data-i18n="portalOpen">Entrar →</span>
+        </button>
+
+        <button class="portal-card" type="button" data-goto="scenarios">
+          <span class="portal-icon">☀️</span>
+          <span class="portal-step">Paso 3</span>
+          <h4 data-i18n="portalScenTitle">Si Hay Sequía o Calor</h4>
+          <p data-i18n="portalScenDesc">Mira qué pasa con tu cosecha si el año viene muy seco, caluroso o con lluvias fuertes.</p>
+          <span class="portal-link" data-i18n="portalOpen">Entrar →</span>
+        </button>
+
+        <button class="portal-card" type="button" data-goto="rotations">
+          <span class="portal-icon">🌾</span>
+          <span class="portal-step">Paso 4</span>
+          <h4 data-i18n="portalRotTitle">Qué Sembrar</h4>
+          <p data-i18n="portalRotDesc">Recibe un plan fácil de 3 años con dibujos claros de raíces y qué plantar cada temporada.</p>
+          <span class="portal-link" data-i18n="portalOpen">Entrar →</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== 1. MI TERRENO (MAPA Y CLIMA) ==================== -->
+    <section id="view-nasa" class="view">
+      <div class="section-header-bar">
+        <div>
+          <h2 data-i18n="nasaViewTitle">1. Marca tu Terreno y Mira el Clima</h2>
+          <p class="panel-desc" data-i18n="nasaViewDesc">
+            Elige una región o haz clic en el mapa sobre tu terreno y presiona el botón azul.
+          </p>
+        </div>
+        <div class="header-actions">
+          <button id="downloadDavCsvBtn" class="btn btn-ghost btn-sm" type="button" data-i18n="downloadNasaCsvBtn">
+            Descargar tabla (CSV)
+          </button>
+          <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+            <span class="help-tooltip" data-i18n="tipDownloadCsv">Descarga los datos de lluvia y temperatura en un archivo que puedes abrir en Excel.</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="nasa-workspace">
+        <article class="panel map-panel">
+          <div class="panel-header space-between">
+            <h3>
+              <span data-i18n="mapTitle">Mapa de tu Parcela</span>
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip" data-i18n="tipMap">Puedes hacer clic en cualquier parte del mapa para mover el marcador azul justo a tu terreno.</span>
+              </span>
+            </h3>
+            <select id="mapLayerSelect" class="input input-compact">
+              <option value="satellite" data-i18n="layerSat">Vista Satélite</option>
+              <option value="topo" data-i18n="layerTopo">Relieve</option>
+              <option value="osm" data-i18n="layerOsm">Caminos y Calles</option>
+            </select>
+          </div>
+          <div id="leafletMap" class="leaflet-box"></div>
+          <canvas id="fallbackMapCanvas" class="fallback-map hidden" width="640" height="340"></canvas>
+
+          <div class="coord-bar-simple">
+            <div style="flex: 1; min-width: 220px;">
+              <label class="field-label" for="presetSelect" data-i18n="corridorLabel">Región cercana</label>
+              <select id="presetSelect" class="input"></select>
+            </div>
+            <span class="source-tag" id="mapCoordBadge">Punto: 20.60°, -101.20°</span>
+          </div>
+
+          <details class="advanced-toggle">
+            <summary data-i18n="advCoordsToggle">Ingresar coordenadas exactas (opcional)</summary>
+            <div class="dual-grid">
+              <div>
+                <label class="field-label" for="latInput" data-i18n="latLabel">Latitud (°)</label>
+                <input id="latInput" class="input" type="number" step="0.01" min="-65" max="65" value="20.60" />
+              </div>
+              <div>
+                <label class="field-label" for="lonInput" data-i18n="lonLabel">Longitud (°)</label>
+                <input id="lonInput" class="input" type="number" step="0.01" min="-180" max="180" value="-101.20" />
+              </div>
+            </div>
+          </details>
+        </article>
+
+        <article class="panel dav-panel">
+          <div class="panel-header">
+            <h3>
+              <span data-i18n="davConsoleTitle">¿Qué revisamos desde el satélite?</span>
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip" data-i18n="tipNasaData">Los satélites de la NASA miden cada día la temperatura, la lluvia y la humedad natural de la tierra en tu zona.</span>
+              </span>
+            </h3>
+          </div>
+
+          <ul class="simple-step-list">
+            <li><span>🌡️</span><div><strong>Temperatura</strong><br><small>Qué tanto calor o frío hace en tu zona.</small></div></li>
+            <li><span>🌧️</span><div><strong>Lluvia</strong><br><small>Cuánta agua cae en los meses de lluvia y los secos.</small></div></li>
+            <li><span>💧</span><div><strong>Humedad de la tierra</strong><br><small>Qué tan húmedo está el suelo donde crecen las raíces.</small></div></li>
+          </ul>
+
+          <button id="runDavQueryBtn" class="btn btn-primary full-width" type="button" data-i18n="queryNasaBtn">
+            🔍 Ver clima de mi terreno
+          </button>
+        </article>
+      </div>
+
+      <div id="nasaEmptyHint" class="empty-prompt">
+        <p data-i18n="nasaEmptyText">Presiona <strong>"Ver clima de mi terreno"</strong> para ver en 3 segundos la temperatura, lluvia y humedad de tu zona.</p>
+      </div>
+
+      <div id="nasaResultsBlock" class="hidden">
+        <div class="kpi-grid kpi-grid-3">
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label">🌡️ Temperatura promedio</span>
+            <strong id="kpiNasaTemp" class="kpi-value">--</strong>
+            <small id="kpiNasaTempNote" class="kpi-sub">--</small>
+          </article>
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label">🌧️ Lluvia promedio</span>
+            <strong id="kpiNasaRain" class="kpi-value">--</strong>
+            <small id="kpiNasaRainNote" class="kpi-sub">--</small>
+          </article>
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label">
+              💧 Humedad en raíces
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">Mide qué tan mojada está la tierra a la altura de las raíces según el satélite. 100% es tierra empapada y menos de 30% es tierra seca.</span>
+              </span>
+            </span>
+            <strong id="kpiNasaMoist" class="kpi-value">--</strong>
+            <small id="kpiNasaMoistNote" class="kpi-sub">--</small>
+          </article>
+        </div>
+
+        <article class="panel reveal-card">
+          <div class="panel-header space-between">
+            <h3>
+              <span data-i18n="davChartTitle">Lluvia y Temperatura de los últimos meses</span>
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">Las barras azules muestran cuánta lluvia cayó cada mes y la línea naranja muestra si hizo más calor o frío.</span>
+              </span>
+            </h3>
+            <span id="davSourceBadge" class="source-tag">Datos NASA</span>
+          </div>
+          <canvas id="davSeriesCanvas" width="880" height="270"></canvas>
+        </article>
+      </div>
+
+      <div class="step-footer-nav">
+        <button class="btn btn-ghost" type="button" data-goto="home">← Volver al Inicio</button>
+        <button class="btn btn-primary" type="button" data-goto="diagnostics" data-i18n="goToDiagnostics">
+          Siguiente: Revisar mi Tierra y Agua →
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== 2. AGUA Y TIERRA ==================== -->
+    <section id="view-diagnostics" class="view">
+      <div class="section-header-bar">
+        <div>
+          <h2 data-i18n="diagTitle">2. Cuéntanos cómo es tu Tierra y Riego</h2>
+          <p id="diagLocationSubtitle" class="panel-desc">Con estos datos sabremos cuánta agua guarda tu terreno.</p>
+        </div>
+        <span class="source-tag" id="diagCoordPill">20.60°, -101.20°</span>
+      </div>
+
+      <article class="panel soil-setup-bar">
+        <div class="panel-header">
+          <h3 data-i18n="soilConfigTitle">Datos sencillos de tu parcela</h3>
+        </div>
+
+        <div class="soil-inputs-grid">
+          <div>
+            <label class="field-label" for="currentCropSelect">
+              <span data-i18n="currentCropLabel">¿Qué cultivas hoy?</span>
+            </label>
+            <select id="currentCropSelect" class="input"></select>
+          </div>
+
+          <div>
+            <label class="field-label" for="textureSelect">
+              <span data-i18n="textureLabel">¿Cómo es tu tierra?</span>
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">La tierra arenosa suelta rápido el agua; la tierra de barro (arcillosa) la retiene más tiempo; la tierra negra o franca es la más equilibrada.</span>
+              </span>
+            </label>
+            <select id="textureSelect" class="input"></select>
+          </div>
+
+          <div>
+            <label class="field-label" for="irrigSelect">
+              <span data-i18n="irrigLabel">¿Cómo riegas?</span>
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">Indica si tu cultivo depende solo de la lluvia (temporal), si puedes darle algunos riegos de apoyo, o si tienes riego completo todo el año.</span>
+              </span>
+            </label>
+            <select id="irrigSelect" class="input">
+              <option value="rainfed" data-i18n="irrigRainfed">Solo lluvia (temporal)</option>
+              <option value="deficit" selected data-i18n="irrigDeficit">Riego de apoyo / limitado</option>
+              <option value="full" data-i18n="irrigFull">Riego completo</option>
+            </select>
+          </div>
+
+          <div class="slider-card">
+            <label class="field-label" for="somInput">
+              <span data-i18n="somLabel">Fertilidad / Tierra oscura</span>
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">Es el abono natural (materia orgánica) que tiene la tierra. Mientras más oscura y fértil, más agua retiene como una esponja.</span>
+              </span>
+            </label>
+            <div><strong id="somVal">1.8</strong>% <span id="somBadge" class="slider-status-tag">Media</span></div>
+            <input id="somInput" type="range" min="0.6" max="5.5" step="0.1" value="1.8" class="slider" />
+          </div>
+
+          <div class="slider-card">
+            <label class="field-label" for="phInput">
+              <span data-i18n="phLabel">Acidez de la tierra (pH)</span>
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">Indica si el suelo es ácido (menos de 6), normal/neutro (entre 6 y 7.5) o salitroso/alcalino (más de 7.5). Casi todas las plantas prefieren suelo normal.</span>
+              </span>
+            </label>
+            <div><strong id="phVal">7.3</strong> <span id="phBadge" class="slider-status-tag">Normal</span></div>
+            <input id="phInput" type="range" min="4.8" max="8.4" step="0.1" value="7.3" class="slider" />
+          </div>
+
+          <div>
+            <button id="recalcDiagBtn" class="btn btn-primary full-width" type="button" data-i18n="recalcSoilBtn">
+              💧 Revisar agua y salud de mi tierra
+            </button>
+          </div>
+        </div>
+
+        <details class="advanced-toggle">
+          <summary>Ajustes adicionales del terreno (opcional)</summary>
+          <div class="dual-grid">
+            <div>
+              <label class="field-label" for="nInput">
+                <span data-i18n="nLabel">Nitrógeno inicial (kg/ha)</span>
+                <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                  <span class="help-tooltip">Cantidad aproximada de nutriente nitrógeno disponible antes de sembrar. Si no lo conoces, déjalo como está.</span>
+                </span>
+              </label>
+              <input id="nInput" class="input" type="number" min="5" max="150" step="5" value="42" />
+            </div>
+            <div>
+              <label class="field-label" for="slopeInput">
+                <span data-i18n="slopeLabel">Inclinación / pendiente (%)</span>
+                <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                  <span class="help-tooltip">Si tu terreno es plano deja 0 a 3%. Si está en ladera, entre más inclinado más agua de lluvia se escurre.</span>
+                </span>
+              </label>
+              <input id="slopeInput" class="input" type="number" min="0" max="25" step="0.5" value="2.5" />
+            </div>
+          </div>
+        </details>
+      </article>
+
+      <div id="diagEmptyHint" class="empty-prompt">
+        <p data-i18n="diagEmptyText">Presiona <strong>"Revisar agua y salud de mi tierra"</strong> para ver en 3 segundos si la lluvia alcanza para tu cultivo.</p>
+      </div>
+
+      <div id="diagResultsBlock" class="hidden">
+        <div id="diagQuickBanner" class="quick-summary-banner">
+          <strong id="diagQuickVerdict">Resumen en 3 segundos: calculando...</strong>
+        </div>
+
+        <div class="kpi-grid">
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label">
+              🌧️ Lluvia vs. agua necesaria
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">Compara toda la lluvia que cae en el año contra el agua que se evapora y piden las plantas.</span>
+              </span>
+            </span>
+            <strong id="kpiPrecip" class="kpi-value">--</strong>
+            <small id="kpiAridity" class="kpi-sub">--</small>
+          </article>
+
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label">
+              💧 Esponja de tu tierra
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">Cuántos litros de agua útil puede guardar cada metro cuadrado de tu tierra para que la planta tome cuando no llueve.</span>
+              </span>
+            </span>
+            <strong id="kpiWetness" class="kpi-value">--</strong>
+            <small id="kpiAwc" class="kpi-sub">--</small>
+          </article>
+
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label">🔥 Cambio de calor (10 años)</span>
+            <strong id="kpiWarming" class="kpi-value">--</strong>
+            <small id="kpiTempMean" class="kpi-sub">--</small>
+          </article>
+
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label">
+              ⚠️ Días difíciles al año
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">Días con calor extremo, heladas o la racha más larga de días seguidos sin lluvia.</span>
+              </span>
+            </span>
+            <strong id="kpiExtremes" class="kpi-value">--</strong>
+            <small id="kpiDrySpell" class="kpi-sub">--</small>
+          </article>
+        </div>
+
+        <div class="dual-panels-wide">
+          <article class="panel reveal-card">
+            <div class="panel-header">
+              <h3>
+                <span>🪣 ¿Cuánta agua retiene tu tierra?</span>
+                <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                  <span class="help-tooltip">Este dibujo muestra tu suelo como un tanque de agua: entre más fértil y mejor textura tenga, más reserva guarda para los días secos.</span>
+                </span>
+              </h3>
+            </div>
+            <canvas id="soilTankCanvas" width="420" height="260"></canvas>
+          </article>
+
+          <article class="panel reveal-card">
+            <div class="panel-header space-between">
+              <h3>
+                <span data-i18n="climateChartTitle">Meses con lluvia vs. meses secos</span>
+                <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                  <span class="help-tooltip">Cuando la barra azul (lluvia) es más baja que la línea naranja, la tierra se seca y el cultivo necesita riego o plantas resistentes.</span>
+                </span>
+              </h3>
+            </div>
+            <canvas id="climateCanvas" width="640" height="260"></canvas>
+          </article>
+        </div>
+
+        <article class="panel reveal-card">
+          <div class="panel-header space-between">
+            <h3>
+              <span data-i18n="monthlyTableTitle">Resumen mes por mes (fácil de leer)</span>
+            </h3>
+          </div>
+          <div class="table-scroll">
+            <table id="monthlyClimateTable" class="data-table"></table>
+          </div>
+        </article>
+      </div>
+
+      <div class="step-footer-nav">
+        <button class="btn btn-ghost" type="button" data-goto="nasa">← Volver al Mapa</button>
+        <button class="btn btn-primary" type="button" data-goto="scenarios" data-i18n="goToScenarios">
+          Siguiente: Ver qué pasa si hay sequía →
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== 3. SI HAY SEQUÍA (ESCENARIOS) ==================== -->
+    <section id="view-scenarios" class="view">
+      <div class="section-header-bar">
+        <div>
+          <h2 data-i18n="scenViewTitle">3. ¿Qué pasa con tu cosecha si cambia el clima?</h2>
+          <p class="panel-desc" data-i18n="scenViewDesc">
+            Compara tu cultivo actual contra una rotación inteligente en 4 situaciones posibles del clima.
+          </p>
+        </div>
+        <div class="header-actions">
+          <button id="runScenariosBtn" class="btn btn-primary" type="button" data-i18n="calcScenariosBtn">
+            ☀️ Calcular qué pasa en cada clima
+          </button>
+          <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+            <span class="help-tooltip">Simula cómo responde tu parcela si el año viene normal, muy caluroso, con sequía grave o con lluvias torrenciales.</span>
+          </span>
+        </div>
+      </div>
+
+      <div id="scenEmptyHint" class="empty-prompt">
+        <p data-i18n="scenEmptyText">Presiona <strong>"Calcular qué pasa en cada clima"</strong> para comparar qué tanto se protege tu cosecha.</p>
+      </div>
+
+      <div id="scenResultsBlock" class="hidden">
+        <div id="scenarioCardsGrid" class="scenario-cards-grid"></div>
+
+        <article class="panel reveal-card">
+          <div class="panel-header">
+            <h3>
+              <span data-i18n="scenChartTitle">¿Cuánta cosecha logras en cada clima? (Si sigues igual vs. Cambiando cultivos)</span>
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">La barra roja muestra cuánta cosecha se logra si siembras siempre lo mismo. La barra azul/verde muestra cuánto logras rotando cultivos.</span>
+              </span>
+            </h3>
+          </div>
+          <canvas id="scenariosBarCanvas" width="880" height="270"></canvas>
+        </article>
+      </div>
+
+      <div class="step-footer-nav">
+        <button class="btn btn-ghost" type="button" data-goto="diagnostics">← Volver a Tierra y Agua</button>
+        <button class="btn btn-primary" type="button" data-goto="rotations" data-i18n="goToRotations">
+          Siguiente: Ver qué me conviene sembrar →
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== 4. QUÉ SEMBRAR (ROTACIONES Y DIBUJOS) ==================== -->
+    <section id="view-rotations" class="view">
+      <div class="section-header-bar">
+        <div>
+          <h2 data-i18n="rotViewTitle">4. Tu Plan Recomendado para los Próximos 3 Años</h2>
+          <p class="panel-desc" data-i18n="rotViewDesc">
+            Elige qué te importa más cuidar y mira los cultivos que mejor funcionan juntos en tu terreno.
+          </p>
+        </div>
+        <div class="header-actions">
+          <button id="exportPngBtn" class="btn btn-secondary btn-sm" type="button" data-i18n="exportPngBtn">Guardar dibujo (PNG)</button>
+          <button id="exportCsvBtn" class="btn btn-primary btn-sm" type="button" data-i18n="exportCsvBtn">Descargar plan (CSV)</button>
+          <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+            <span class="help-tooltip">Guarda una imagen de tu rueda de siembra o una tabla para imprimir o llevar al campo.</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="rot-layout">
+        <aside class="panel priorities-panel">
+          <div class="panel-header">
+            <h3>
+              <span data-i18n="prioritiesHead">¿Qué te importa más?</span>
+              <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                <span class="help-tooltip">Mueve cada barra según lo que más necesites en tu parcela. Luego presiona el botón azul para ver las mejores opciones.</span>
+              </span>
+            </h3>
+          </div>
+
+          <div class="priority-item">
+            <div class="priority-head"><span>🌱 Cuidar la tierra</span><strong id="prioSoilVal">30</strong></div>
+            <input id="prioSoil" type="range" min="0" max="100" value="30" class="slider" />
+          </div>
+          <div class="priority-item">
+            <div class="priority-head"><span>💧 Ahorrar agua</span><strong id="prioWaterVal">30</strong></div>
+            <input id="prioWater" type="range" min="0" max="100" value="30" class="slider" />
+          </div>
+          <div class="priority-item">
+            <div class="priority-head"><span>☀️ Aguantar sequía/calor</span><strong id="prioClimateVal">20</strong></div>
+            <input id="prioClimate" type="range" min="0" max="100" value="20" class="slider" />
+          </div>
+          <div class="priority-item">
+            <div class="priority-head"><span>💰 Ingreso y alimento</span><strong id="prioProfitVal">20</strong></div>
+            <input id="prioProfit" type="range" min="0" max="100" value="20" class="slider" />
+          </div>
+
+          <label class="field-label" for="scenarioSelect">
+            <span data-i18n="scenarioLabel">Clima para tu plan</span>
+            <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+              <span class="help-tooltip">Puedes pedir un plan para el clima actual, o uno pensado para años con sequía fuerte o lluvias intensas.</span>
+            </span>
+          </label>
+          <select id="scenarioSelect" class="input">
+            <option value="baseline" data-i18n="scenBaseline">Clima normal actual</option>
+            <option value="warm_dry_15" data-i18n="scenWarmDry">Año caluroso y seco</option>
+            <option value="extreme_25" data-i18n="scenExtreme">Sequía fuerte</option>
+            <option value="wet_extreme_12" data-i18n="scenWet">Lluvias muy fuertes</option>
+          </select>
+
+          <button id="optimizeBtn" class="btn btn-primary full-width" type="button" data-i18n="optimizeBtn">
+            🌾 Ver qué me conviene sembrar
+          </button>
+
+          <div id="rotSidebarResults" class="hidden">
+            <hr class="divider" />
+            <h4 class="subhead" data-i18n="stratTitle">Elige una de estas 3 opciones</h4>
+            <div id="strategyTabs" class="strategy-tabs"></div>
+          </div>
+        </aside>
+
+        <div class="rot-visuals">
+          <div id="rotEmptyHint" class="empty-prompt">
+            <p data-i18n="rotEmptyText">Presiona <strong>"Ver qué me conviene sembrar"</strong> para ver en dibujos claros el plan de 3 años para tu tierra.</p>
+          </div>
+
+          <div id="rotResultsBlock" class="hidden">
+            <!-- 3-Second Impact Cards -->
+            <div id="baselineDeltaGrid" class="kpi-grid"></div>
+
+            <!-- Visual Graphics Grid -->
+            <div class="hero-grid">
+              <article class="panel mandala-panel reveal-card">
+                <div class="panel-header">
+                  <div>
+                    <h3>
+                      <span data-i18n="mandalaTitle">Rueda de Siembra (3 Años)</span>
+                      <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                        <span class="help-tooltip">Afuera ves los 12 meses con sol y lluvia. Adentro ves en orden qué cultivo plantar cada ciclo y qué tan profundas son sus raíces.</span>
+                      </span>
+                    </h3>
+                    <p class="panel-desc" data-i18n="mandalaDesc">Cada parte del círculo es una temporada de siembra.</p>
+                  </div>
+                </div>
+                <div class="mandala-wrap">
+                  <canvas id="mandalaCanvas" width="460" height="460"></canvas>
+                  <div id="mandalaLegend" class="mandala-legend"></div>
+                </div>
+              </article>
+
+              <article class="panel reveal-card">
+                <div class="panel-header">
+                  <div>
+                    <h3>
+                      <span>🌱 Cómo trabajan las raíces bajo tu tierra</span>
+                      <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                        <span class="help-tooltip">Alternar plantas de raíz corta y raíz profunda busca agua a distintas alturas, evita plagas y las bolitas verdes aportan abono natural.</span>
+                      </span>
+                    </h3>
+                    <p class="panel-desc">Así se complementan los cultivos que elegimos para tu suelo.</p>
+                  </div>
+                </div>
+                <canvas id="rootsDiagramCanvas" width="460" height="270"></canvas>
+              </article>
+            </div>
+
+            <article class="panel reveal-card">
+              <div class="panel-header">
+                <h3>
+                  <span data-i18n="soilTrajectoryTitle">¿Mejora tu tierra con el tiempo?</span>
+                  <span class="help-tip" tabindex="0" aria-label="Ayuda">?
+                    <span class="help-tooltip">La línea verde/azul muestra cómo sube la fertilidad de tu tierra con rotación. La línea roja muestra cómo se cansa si siembras siempre lo mismo.</span>
+                  </span>
+                </h3>
+              </div>
+              <canvas id="soilTrajectoryCanvas" width="880" height="215"></canvas>
+            </article>
+
+            <article class="panel reveal-card">
+              <div class="panel-header">
+                <h3>
+                  <span data-i18n="timelineTitle">Qué plantar temporada por temporada (3 años)</span>
+                </h3>
+              </div>
+              <div id="seasonCardsGrid" class="season-grid"></div>
+              <div class="table-scroll" style="margin-top: 1rem;">
+                <table id="rotationPlanTable" class="data-table"></table>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-footer-nav">
+        <button class="btn btn-ghost" type="button" data-goto="scenarios">← Volver a Climas Futuros</button>
+        <button class="btn btn-secondary" type="button" data-goto="home">🏠 Volver al Inicio</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>
+      <strong>Orbital Farm</strong> · Datos Climáticos NASA POWER · Diseñado para una lectura rápida y clara en el campo
+    </p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="static-fallback.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orbital Farm · Decisiones Agrícolas con NASA POWER</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" id="brandHomeBtn" role="button" tabindex="0">
+      <div class="brand-emblem" aria-hidden="true">
+        <svg viewBox="0 0 40 40" width="32" height="32">
+          <circle cx="20" cy="20" r="17" fill="none" stroke="#58d68d" stroke-width="1.4" stroke-dasharray="4 3"/>
+          <path d="M20 28 C20 20, 20 15, 25 11 C21 12, 19 16, 20 20 C19 16, 16 13, 14 13 C16 17, 19 21, 20 28 Z" fill="#58d68d"/>
+          <circle cx="31" cy="9" r="2.5" fill="#5ec7e6"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Orbital Farm</h1>
+        <p class="subtitle" data-i18n="appSubtitle">Satélites NASA · Suelo Local · Rotaciones</p>
+      </div>
+    </div>
+
+    <nav class="main-nav" aria-label="Navegación principal">
+      <button class="nav-btn active" data-view="home" data-i18n="navHome">Portada</button>
+      <button class="nav-btn" data-view="nasa" data-i18n="navNasa">1. Mapa NASA</button>
+      <button class="nav-btn" data-view="diagnostics" data-i18n="navDiag">2. Tu Suelo y Clima</button>
+      <button class="nav-btn" data-view="scenarios" data-i18n="navScen">3. Escenarios Futuros</button>
+      <button class="nav-btn" data-view="rotations" data-i18n="navRot">4. Rotaciones</button>
+    </nav>
+
+    <div class="topbar-actions">
+      <div id="nasaStatusBadge" class="status-pill status-ready">
+        <span class="pulse-dot"></span>
+        <span id="nasaStatusText" data-i18n="statusReady">Listo para consultar</span>
+      </div>
+
+      <div class="lang-box">
+        <select id="langSelect" class="input input-compact" aria-label="Seleccionar idioma">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="pt">Português</option>
+          <option value="it">Italiano</option>
+          <option value="de">Deutsch</option>
+          <option value="hi">हिन्दी</option>
+          <option value="sw">Kiswahili</option>
+          <option value="ar">العربية</option>
+          <option value="zh-CN">中文</option>
+          <option value="ja">日本語</option>
+          <option value="custom" data-i18n="langOtherOption">Otro idioma...</option>
+        </select>
+        <input id="customLangInput" class="input input-compact hidden" type="text" placeholder="Ej: ru, ko, nl..." />
+        <button id="applyCustomLangBtn" class="btn btn-secondary btn-sm hidden" type="button" data-i18n="translateBtn">Traducir</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ==================== 0. PORTADA MINIMALISTA ==================== -->
+    <section id="view-home" class="view active">
+      <div class="hero-banner">
+        <div class="hero-copy">
+          <span class="hero-kicker" data-i18n="heroKicker">NASA SPACE APPS · AGRICULTURA RESILIENTE</span>
+          <h2 class="hero-title" data-i18n="heroTitle">Diseña rotaciones de cultivo guiadas por satélites de la NASA y tu suelo</h2>
+          <p class="hero-desc" data-i18n="heroDesc">
+            Elige tu ubicación, ingresa las características reales de tu terreno y descubre cómo proteger tu cosecha, conservar agua y regenerar la fertilidad ante el cambio climático.
+          </p>
+
+          <div class="quick-setup-card">
+            <div class="quick-grid">
+              <div>
+                <label class="field-label" for="homePresetSelect" data-i18n="presetLabel">Ubicación Inicial</label>
+                <select id="homePresetSelect" class="input"></select>
+              </div>
+              <div>
+                <label class="field-label" for="homeCurrentCrop" data-i18n="currentCropLabel">Tu Cultivo Actual</label>
+                <select id="homeCurrentCrop" class="input"></select>
+              </div>
+            </div>
+            <div class="hero-cta-row">
+              <button id="startExploreBtn" class="btn btn-primary" type="button" data-i18n="heroCtaMain">
+                Comenzar en el Mapa NASA →
+              </button>
+              <button class="btn btn-ghost" type="button" data-goto="diagnostics" data-i18n="heroCtaSoil">
+                Ir directo a Datos del Suelo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <canvas id="heroOrbitCanvas" width="400" height="360"></canvas>
+          <div class="hero-telemetry-chip">
+            <span id="heroLocationChip">Altiplano del Bajío · 20.60°N, -101.20°W</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="portal-grid">
+        <button class="portal-card" type="button" data-goto="nasa">
+          <span class="portal-step">Paso 01</span>
+          <h4 data-i18n="portalNasaTitle">Mapa y Datos NASA POWER</h4>
+          <p data-i18n="portalNasaDesc">Ubica tu parcela en el mapa satelital y elige variables climáticas claras para consultar en vivo.</p>
+          <span class="portal-link" data-i18n="portalOpen">Abrir →</span>
+        </button>
+
+        <button class="portal-card" type="button" data-goto="diagnostics">
+          <span class="portal-step">Paso 02</span>
+          <h4 data-i18n="portalDiagTitle">Tu Suelo y Diagnóstico</h4>
+          <p data-i18n="portalDiagDesc">Ingresa textura, materia orgánica, pH y riego para generar tus gráficas climáticas e hídricas.</p>
+          <span class="portal-link" data-i18n="portalOpen">Abrir →</span>
+        </button>
+
+        <button class="portal-card" type="button" data-goto="scenarios">
+          <span class="portal-step">Paso 03</span>
+          <h4 data-i18n="portalScenTitle">Escenarios Futuros</h4>
+          <p data-i18n="portalScenDesc">Visualiza el futuro de tu cultivo bajo sequía extrema, calentamiento o lluvias intensas.</p>
+          <span class="portal-link" data-i18n="portalOpen">Abrir →</span>
+        </button>
+
+        <button class="portal-card" type="button" data-goto="rotations">
+          <span class="portal-step">Paso 04</span>
+          <h4 data-i18n="portalRotTitle">Rotaciones y Mandala</h4>
+          <p data-i18n="portalRotDesc">Ajusta prioridades, explora el Mandala vivo de raíces y descarga tu plan agronómico.</p>
+          <span class="portal-link" data-i18n="portalOpen">Abrir →</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== 1. MAPA & VISOR NASA POWER ==================== -->
+    <section id="view-nasa" class="view">
+      <div class="section-header-bar">
+        <div>
+          <h2 data-i18n="nasaViewTitle">1. Ubicación en Mapa y Consulta NASA POWER</h2>
+          <p class="panel-desc" data-i18n="nasaViewDesc">
+            Haz clic en tu terreno sobre el mapa, selecciona las variables que deseas medir y presiona Consultar para ver gráficas y tabla.
+          </p>
+        </div>
+        <div class="header-actions">
+          <a class="btn btn-ghost btn-sm" href="https://power.larc.nasa.gov/data-access-viewer/" target="_blank" rel="noopener" data-i18n="openOfficialDav">
+            Visor Oficial NASA ↗
+          </a>
+        </div>
+      </div>
+
+      <div class="nasa-workspace">
+        <article class="panel map-panel">
+          <div class="panel-header space-between">
+            <h3 data-i18n="mapTitle">Mapa Satelital de tu Parcela</h3>
+            <select id="mapLayerSelect" class="input input-compact">
+              <option value="satellite" data-i18n="layerSat">Satélite</option>
+              <option value="topo" data-i18n="layerTopo">Relieve</option>
+              <option value="osm" data-i18n="layerOsm">Calles</option>
+            </select>
+          </div>
+          <div id="leafletMap" class="leaflet-box"></div>
+          <canvas id="fallbackMapCanvas" class="fallback-map hidden" width="640" height="340"></canvas>
+          <div class="coord-bar">
+            <div>
+              <label class="field-label" for="latInput" data-i18n="latLabel">Latitud (°)</label>
+              <input id="latInput" class="input" type="number" step="0.01" min="-65" max="65" value="20.60" />
+            </div>
+            <div>
+              <label class="field-label" for="lonInput" data-i18n="lonLabel">Longitud (°)</label>
+              <input id="lonInput" class="input" type="number" step="0.01" min="-180" max="180" value="-101.20" />
+            </div>
+            <div>
+              <label class="field-label" for="presetSelect" data-i18n="corridorLabel">Región de Referencia</label>
+              <select id="presetSelect" class="input"></select>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel dav-panel">
+          <div class="panel-header">
+            <h3 data-i18n="davConsoleTitle">¿Qué datos satelitales deseas consultar?</h3>
+          </div>
+
+          <div class="dual-grid">
+            <div>
+              <label class="field-label" for="davTemporal" data-i18n="davTemporalLabel">Frecuencia de Datos</label>
+              <select id="davTemporal" class="input">
+                <option value="monthly" data-i18n="tempMonthly">Mensual (Últimos años)</option>
+                <option value="daily" data-i18n="tempDaily">Diaria (Detalle por día)</option>
+                <option value="climatology" data-i18n="tempClim">Promedio Histórico</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="davCommunity" data-i18n="davCommunityLabel">Archivo NASA</label>
+              <select id="davCommunity" class="input">
+                <option value="AG">Agricultura (Agroclimatología)</option>
+                <option value="RE">Energía Solar y Viento</option>
+                <option value="SB">Edificación Sustentable</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="dual-grid" id="davDatesRow">
+            <div>
+              <label class="field-label" for="davStart" data-i18n="davStartLabel">Año o Fecha Inicio</label>
+              <input id="davStart" class="input" type="text" value="2023" />
+            </div>
+            <div>
+              <label class="field-label" for="davEnd" data-i18n="davEndLabel">Año o Fecha Fin</label>
+              <input id="davEnd" class="input" type="text" value="2025" />
+            </div>
+          </div>
+
+          <label class="field-label" data-i18n="davParamsLabel">Variables climáticas y del suelo</label>
+          <div id="davParamsGrid" class="params-grid">
+            <label class="param-chip" title="NASA code: T2M"><input type="checkbox" value="T2M" checked /> Temperatura Media (°C)</label>
+            <label class="param-chip" title="NASA code: T2M_MAX"><input type="checkbox" value="T2M_MAX" checked /> Temperatura Máxima (°C)</label>
+            <label class="param-chip" title="NASA code: T2M_MIN"><input type="checkbox" value="T2M_MIN" /> Temperatura Mínima (°C)</label>
+            <label class="param-chip" title="NASA code: PRECTOTCORR"><input type="checkbox" value="PRECTOTCORR" checked /> Lluvia Diaria (mm/día)</label>
+            <label class="param-chip" title="NASA code: GWETROOT"><input type="checkbox" value="GWETROOT" checked /> Humedad en Raíces (%)</label>
+            <label class="param-chip" title="NASA code: GWETTOP"><input type="checkbox" value="GWETTOP" /> Humedad Superficial (%)</label>
+            <label class="param-chip" title="NASA code: GWETPROF"><input type="checkbox" value="GWETPROF" /> Humedad Perfil Completo (%)</label>
+            <label class="param-chip" title="NASA code: ALLSKY_SFC_SW_DWN"><input type="checkbox" value="ALLSKY_SFC_SW_DWN" checked /> Radiación Solar (MJ/m²)</label>
+            <label class="param-chip" title="NASA code: RH2M"><input type="checkbox" value="RH2M" /> Humedad del Aire (%)</label>
+            <label class="param-chip" title="NASA code: WS2M"><input type="checkbox" value="WS2M" /> Velocidad del Viento (m/s)</label>
+          </div>
+
+          <div class="dav-actions">
+            <button id="runDavQueryBtn" class="btn btn-primary" type="button" data-i18n="queryNasaBtn">
+              Consultar Datos NASA
+            </button>
+            <button id="downloadDavCsvBtn" class="btn btn-secondary" type="button" data-i18n="downloadNasaCsvBtn">
+              Descargar CSV
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <!-- RESULTADOS DEL VISOR (OCULTOS HASTA CONSULTAR) -->
+      <div id="nasaEmptyHint" class="empty-prompt">
+        <p data-i18n="nasaEmptyText">Selecciona un punto en el mapa y presiona <strong>"Consultar Datos NASA"</strong> para generar la gráfica y tabla satelital.</p>
+      </div>
+
+      <div id="nasaResultsBlock" class="hidden">
+        <div class="dual-panels-wide">
+          <article class="panel reveal-card">
+            <div class="panel-header space-between">
+              <h3 data-i18n="davChartTitle">Gráfica de Observaciones Satelitales</h3>
+              <span id="davSourceBadge" class="source-tag">NASA POWER</span>
+            </div>
+            <canvas id="davSeriesCanvas" width="660" height="250"></canvas>
+          </article>
+
+          <article class="panel reveal-card">
+            <div class="panel-header space-between">
+              <h3 data-i18n="davTableTitle">Tabla de Registros NASA POWER</h3>
+              <button class="btn btn-primary btn-sm" type="button" data-goto="diagnostics" data-i18n="goToDiagnostics">
+                Continuar a tu Suelo →
+              </button>
+            </div>
+            <div class="table-scroll">
+              <table id="davDataTable" class="data-table"></table>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 2. CLIMA Y SALUD DEL SUELO ==================== -->
+    <section id="view-diagnostics" class="view">
+      <div class="section-header-bar">
+        <div>
+          <h2 data-i18n="diagTitle">2. Datos de tu Suelo y Diagnóstico Climático</h2>
+          <p id="diagLocationSubtitle" class="panel-desc">Completa las características de tu parcela para generar tus gráficas personalizadas.</p>
+        </div>
+      </div>
+
+      <article class="panel soil-setup-bar">
+        <div class="panel-header space-between">
+          <h3 data-i18n="soilConfigTitle">Ingresa la Información Local de tu Terreno</h3>
+          <span class="source-tag" id="diagCoordPill">20.60°, -101.20°</span>
+        </div>
+
+        <div class="soil-inputs-grid">
+          <div>
+            <label class="field-label" for="currentCropSelect" data-i18n="currentCropLabel">Cultivo Actual</label>
+            <select id="currentCropSelect" class="input"></select>
+          </div>
+          <div>
+            <label class="field-label" for="textureSelect" data-i18n="textureLabel">Textura del Suelo</label>
+            <select id="textureSelect" class="input"></select>
+          </div>
+          <div>
+            <label class="field-label" for="irrigSelect" data-i18n="irrigLabel">Acceso a Agua / Riego</label>
+            <select id="irrigSelect" class="input">
+              <option value="rainfed" data-i18n="irrigRainfed">Solo Lluvia (Sin riego)</option>
+              <option value="deficit" selected data-i18n="irrigDeficit">Riego Auxiliar / Limitado</option>
+              <option value="full" data-i18n="irrigFull">Riego Completo</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="nInput" data-i18n="nLabel">Nitrógeno Inicial (kg/ha)</label>
+            <input id="nInput" class="input" type="number" min="5" max="150" step="5" value="42" />
+          </div>
+          <div>
+            <label class="field-label" for="somInput"><span data-i18n="somLabel">Materia Orgánica</span> (<strong id="somVal">1.8</strong>%)</label>
+            <input id="somInput" type="range" min="0.6" max="5.5" step="0.1" value="1.8" class="slider" />
+          </div>
+          <div>
+            <label class="field-label" for="phInput"><span data-i18n="phLabel">Acidez / pH del Suelo</span> (<strong id="phVal">7.3</strong>)</label>
+            <input id="phInput" type="range" min="4.8" max="8.4" step="0.1" value="7.3" class="slider" />
+          </div>
+          <div>
+            <label class="field-label" for="slopeInput" data-i18n="slopeLabel">Pendiente del Terreno (%)</label>
+            <input id="slopeInput" class="input" type="number" min="0" max="25" step="0.5" value="2.5" />
+          </div>
+          <div class="align-end">
+            <button id="recalcDiagBtn" class="btn btn-primary full-width" type="button" data-i18n="recalcSoilBtn">
+              Generar Diagnóstico y Gráficas
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <!-- RESULTADOS DEL DIAGNÓSTICO (OCULTOS HASTA LLENAR Y GENERAR) -->
+      <div id="diagEmptyHint" class="empty-prompt">
+        <p data-i18n="diagEmptyText">Ajusta los datos de tu suelo arriba y presiona <strong>"Generar Diagnóstico y Gráficas"</strong> para visualizar el balance hídrico de tu terreno junto a los datos de la NASA.</p>
+      </div>
+
+      <div id="diagResultsBlock" class="hidden">
+        <div class="kpi-grid">
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label" data-i18n="kpiPrecip">Lluvia Anual vs. Demanda Agua</span>
+            <strong id="kpiPrecip" class="kpi-value">--</strong>
+            <small id="kpiAridity" class="kpi-sub">--</small>
+          </article>
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label" data-i18n="kpiWarming">Cambio Térmico (10 años)</span>
+            <strong id="kpiWarming" class="kpi-value">--</strong>
+            <small id="kpiTempMean" class="kpi-sub">--</small>
+          </article>
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label" data-i18n="kpiExtremes">Días Extremos al Año</span>
+            <strong id="kpiExtremes" class="kpi-value">--</strong>
+            <small id="kpiDrySpell" class="kpi-sub">--</small>
+          </article>
+          <article class="kpi-card reveal-card">
+            <span class="kpi-label" data-i18n="kpiWetness">Capacidad Hídrica de tu Suelo</span>
+            <strong id="kpiWetness" class="kpi-value">--</strong>
+            <small id="kpiAwc" class="kpi-sub">--</small>
+          </article>
+        </div>
+
+        <div class="dual-panels-wide">
+          <article class="panel reveal-card">
+            <div class="panel-header space-between">
+              <h3 data-i18n="historyChartTitle">Tendencia Histórica NASA POWER (2016–2025)</h3>
+              <span class="source-tag">Temperatura y Lluvia</span>
+            </div>
+            <canvas id="historyChartCanvas" width="640" height="235"></canvas>
+          </article>
+
+          <article class="panel reveal-card">
+            <div class="panel-header space-between">
+              <h3 data-i18n="climateChartTitle">Humedad de tu Suelo Local vs. Clima NASA</h3>
+              <span class="source-tag">Responde a tu Textura, MOS y Riego</span>
+            </div>
+            <canvas id="climateCanvas" width="640" height="235"></canvas>
+          </article>
+        </div>
+
+        <article class="panel reveal-card">
+          <div class="panel-header space-between">
+            <h3 data-i18n="monthlyTableTitle">Tabla Mensual Clima NASA + Agua en tu Suelo</h3>
+            <button class="btn btn-primary btn-sm" type="button" data-goto="scenarios" data-i18n="goToScenarios">
+              Ver Escenarios Futuros →
+            </button>
+          </div>
+          <div class="table-scroll">
+            <table id="monthlyClimateTable" class="data-table"></table>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ==================== 3. ESCENARIOS FUTUROS ==================== -->
+    <section id="view-scenarios" class="view">
+      <div class="section-header-bar">
+        <div>
+          <h2 data-i18n="scenViewTitle">3. Simulador de Escenarios Futuros</h2>
+          <p class="panel-desc" data-i18n="scenViewDesc">
+            Compara cómo resistirá tu siembra actual frente a rotaciones recomendadas bajo distintos futuros climáticos.
+          </p>
+        </div>
+        <button id="runScenariosBtn" class="btn btn-primary btn-sm" type="button" data-i18n="calcScenariosBtn">
+          Simular Todos los Escenarios
+        </button>
+      </div>
+
+      <div id="scenEmptyHint" class="empty-prompt">
+        <p data-i18n="scenEmptyText">Primero completa tus datos en <strong>"2. Tu Suelo y Clima"</strong> o presiona <strong>"Simular Todos los Escenarios"</strong> para calcular los resultados.</p>
+      </div>
+
+      <div id="scenResultsBlock" class="hidden">
+        <div id="scenarioCardsGrid" class="scenario-cards-grid"></div>
+
+        <div class="dual-panels-wide">
+          <article class="panel reveal-card">
+            <div class="panel-header">
+              <h3 data-i18n="scenChartTitle">Estabilidad de Cosecha: Siembra Actual vs. Rotación</h3>
+            </div>
+            <canvas id="scenariosBarCanvas" width="640" height="260"></canvas>
+          </article>
+
+          <article class="panel reveal-card">
+            <div class="panel-header space-between">
+              <h3 data-i18n="scenTableTitle">Resumen Comparativo por Escenario</h3>
+              <button class="btn btn-primary btn-sm" type="button" data-goto="rotations" data-i18n="goToRotations">
+                Diseñar Rotaciones →
+              </button>
+            </div>
+            <div class="table-scroll">
+              <table id="scenariosTable" class="data-table"></table>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 4. ROTACIONES & MANDALA ==================== -->
+    <section id="view-rotations" class="view">
+      <div class="section-header-bar">
+        <div>
+          <h2 data-i18n="rotViewTitle">4. Estrategias de Rotación y Mandala Órbita-Raíz</h2>
+          <p class="panel-desc" data-i18n="rotViewDesc">
+            Ajusta tus prioridades para optimizar una rotación a 3 años (6 ciclos) adaptada a tu parcela.
+          </p>
+        </div>
+        <div class="header-actions">
+          <button id="exportPngBtn" class="btn btn-secondary btn-sm" type="button" data-i18n="exportPngBtn">Guardar Mandala PNG</button>
+          <button id="exportCsvBtn" class="btn btn-primary btn-sm" type="button" data-i18n="exportCsvBtn">Exportar Plan CSV</button>
+        </div>
+      </div>
+
+      <div class="rot-layout">
+        <aside class="panel priorities-panel">
+          <div class="panel-header">
+            <h3 data-i18n="prioritiesHead">Tus Prioridades</h3>
+          </div>
+
+          <div class="priority-item">
+            <div class="priority-head"><span data-i18n="prioSoil">Salud del Suelo</span><strong id="prioSoilVal">30</strong></div>
+            <input id="prioSoil" type="range" min="0" max="100" value="30" class="slider slider-green" />
+          </div>
+          <div class="priority-item">
+            <div class="priority-head"><span data-i18n="prioWater">Ahorro de Agua</span><strong id="prioWaterVal">30</strong></div>
+            <input id="prioWater" type="range" min="0" max="100" value="30" class="slider slider-cyan" />
+          </div>
+          <div class="priority-item">
+            <div class="priority-head"><span data-i18n="prioClimate">Resistencia a Clima Extremo</span><strong id="prioClimateVal">20</strong></div>
+            <input id="prioClimate" type="range" min="0" max="100" value="20" class="slider slider-amber" />
+          </div>
+          <div class="priority-item">
+            <div class="priority-head"><span data-i18n="prioProfit">Ingreso y Alimento</span><strong id="prioProfitVal">20</strong></div>
+            <input id="prioProfit" type="range" min="0" max="100" value="20" class="slider slider-gold" />
+          </div>
+
+          <label class="field-label" for="scenarioSelect" data-i18n="scenarioLabel">Escenario a Optimizar</label>
+          <select id="scenarioSelect" class="input">
+            <option value="baseline" data-i18n="scenBaseline">Clima Actual NASA POWER</option>
+            <option value="warm_dry_15" data-i18n="scenWarmDry">Calor y Sequía (+1.5°C / -15% lluvia)</option>
+            <option value="extreme_25" data-i18n="scenExtreme">Sequía Extrema (+2.5°C / -25% lluvia)</option>
+            <option value="wet_extreme_12" data-i18n="scenWet">Lluvias Torrenciales (+1.2°C / +30% lluvia)</option>
+          </select>
+
+          <button id="optimizeBtn" class="btn btn-primary full-width" type="button" data-i18n="optimizeBtn">
+            Generar Rotaciones Óptimas
+          </button>
+
+          <div id="rotSidebarResults" class="hidden">
+            <hr class="divider" />
+            <h4 class="subhead" data-i18n="stratTitle">Opciones Recomendadas</h4>
+            <div id="strategyTabs" class="strategy-tabs"></div>
+            <div id="baselineDeltaGrid" class="delta-grid"></div>
+          </div>
+        </aside>
+
+        <div class="rot-visuals">
+          <div id="rotEmptyHint" class="empty-prompt">
+            <p data-i18n="rotEmptyText">Ajusta tus prioridades a la izquierda y presiona <strong>"Generar Rotaciones Óptimas"</strong> para revelar el Mandala y el plan agronómico.</p>
+          </div>
+
+          <div id="rotResultsBlock" class="hidden">
+            <div class="hero-grid">
+              <article class="panel mandala-panel reveal-card">
+                <div class="panel-header">
+                  <div>
+                    <h3 data-i18n="mandalaTitle">Mandala Vivo Órbita-Raíz</h3>
+                    <p class="panel-desc" data-i18n="mandalaDesc">Clima satelital NASA (exterior) conectado a tus cultivos y raíces (interior).</p>
+                  </div>
+                </div>
+                <div class="mandala-wrap">
+                  <canvas id="mandalaCanvas" width="480" height="480"></canvas>
+                  <div id="mandalaLegend" class="mandala-legend"></div>
+                </div>
+              </article>
+
+              <div class="rot-charts-stack">
+                <article class="panel reveal-card">
+                  <div class="panel-header">
+                    <h3 data-i18n="soilTrajectoryTitle">Evolución de Materia Orgánica y Nitrógeno</h3>
+                  </div>
+                  <canvas id="soilTrajectoryCanvas" width="460" height="215"></canvas>
+                </article>
+
+                <article class="panel reveal-card">
+                  <div class="panel-header">
+                    <h3 data-i18n="compChartTitle">Rotación vs. Siembra Actual</h3>
+                  </div>
+                  <canvas id="comparisonCanvas" width="460" height="195"></canvas>
+                </article>
+              </div>
+            </div>
+
+            <article class="panel reveal-card" style="margin-top: 1.1rem;">
+              <div class="panel-header">
+                <h3 data-i18n="timelineTitle">Plan Agronómico Ciclo por Ciclo (3 Años)</h3>
+              </div>
+              <div id="seasonCardsGrid" class="season-grid"></div>
+              <div class="table-scroll" style="margin-top: 1rem;">
+                <table id="rotationPlanTable" class="data-table"></table>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>
+      <strong>Orbital Farm</strong> · NASA Space Apps Challenge ·
+      <a href="https://power.larc.nasa.gov/data-access-viewer/" target="_blank" rel="noopener">NASA POWER Data Access Viewer</a>
+    </p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="/app.js"></script>
+</body>
+</html>
